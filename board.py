@@ -1,4 +1,6 @@
 import pygame
+from dice import Dice
+from buttons import Button
 
 class GridSquare(pygame.sprite.Sprite):
     def __init__(self, i, j, game_board):
@@ -12,26 +14,29 @@ class GameBoard:
         self.side_length = side_length
         self.draw_board = pygame.Rect(origin_x, origin_y, self.side_length, self.side_length)
 
-        self.roll_dice_box = pygame.Rect(572, 688, 67.45, 30)
-        self.undo_box = pygame.Rect(673.5, 687.9, 67.5, 30)
-        self.restart_game_box = pygame.Rect(780, 687.5, 67, 30)
+        self.Buttons = pygame.sprite.Group()
+        self.button_types = {"Roll":[572, 688, 67.45, 30],
+                             "Undo":[673.5, 687.9, 67.5, 30],
+                             "Restart":[780, 687.5, 67, 30],
+                             "use1":[640, 375, 50, 30],
+                             "use2":[640, 455, 50, 30],
+                             "use3":[640, 535, 50, 30],
+                             "use4":[640, 615, 50, 30],
+                             "rotate1":[700, 375, 50, 30],
+                             "rotate2":[700, 455, 50, 30],
+                             "rotate3":[700, 535, 50, 30],
+                             "rotate4":[700, 615, 50, 30],
+                             "mirror1":[760, 375, 50, 30],
+                             "mirror2":[760, 455, 50, 30],
+                             "mirror3":[760, 535, 50, 30],
+                             "mirror4":[760, 615, 50, 30]
+        }
 
-        self.undo1 = pygame.Rect(640,375,50,30)
-        self.undo2 = pygame.Rect(640, 455, 50, 30)
-        self.undo3 = pygame.Rect(640, 535, 50, 30)
-        self.undo4 = pygame.Rect(640, 615, 50, 30)
-
-        self.rotate1 = pygame.Rect(700,375,50,30)
-        self.rotate2 = pygame.Rect(700, 455, 50, 30)
-        self.rotate3 = pygame.Rect(700, 535, 50, 30)
-        self.rotate4 = pygame.Rect(700, 615, 50, 30)
-
-        self.mirror1 = pygame.Rect(760,375,50,30)
-        self.mirror2 = pygame.Rect(760, 455, 50, 30)
-        self.mirror3 = pygame.Rect(760, 535, 50, 30)
-        self.mirror4 = pygame.Rect(760, 615, 50, 30)
+        for button_type, button in self.button_types.items():
+            self.Buttons.add(Button(button, button_type))
 
         self.round_number = 1
+        self.round_in_progress = False
         self.score = 0
 
         self.grid_squares = pygame.sprite.Group()
@@ -39,12 +44,23 @@ class GameBoard:
             for j in range(7):
                 self.grid_squares.add(GridSquare(i, j, self))
 
+        self.dice = Dice()
+
+
     def get_square_under_mouse(self, x, y):
         for grid_square in self.grid_squares:
             if grid_square.square.collidepoint(x,y):
                 return grid_square
 
         return None
+
+
+    def get_button_type(self, x, y):
+        for button in self.Buttons:
+            if button.is_pressed(x,y):
+                return button.get_name()
+
+
 
 
 
