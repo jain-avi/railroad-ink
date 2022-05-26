@@ -58,3 +58,5 @@ SP_JUNC_6 = pygame.transform.smoothscale(
 
 #Load the square selector
 SQUARE_SELECT = pygame.transform.smoothscale(pygame.image.load(os.path.join('Images', 'square_select.png')), (60, 60))
+USE_SELECTED = pygame.transform.smoothscale(pygame.image.load(os.path.join('Images', 'use_selected.png')), (50, 30))
+USE_CAN_SELECT = pygame.transform.smoothscale(pygame.image.load(os.path.join('Images', 'use_can_select.png')), (50, 30))

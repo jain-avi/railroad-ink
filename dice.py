@@ -13,8 +13,11 @@ class DieFace():
     def mirror(self):
         self.is_mirrored = not self.is_mirrored
 
-    def get_state(self):
-        return self.rotation_angle, self.is_mirrored
+    def get_image(self):
+        die_face_img = pygame.transform.rotate(self.img, self.rotation_angle)
+        if self.is_mirrored == True:
+            die_face_img = pygame.transform.flip(die_face_img, flip_x=True, flip_y=False)
+        return die_face_img
 
 
 class Die(pygame.sprite.Sprite):
@@ -30,10 +33,7 @@ class Die(pygame.sprite.Sprite):
 
     def roll(self):
         random_face = random.randint(0,5)
-        if self.current_top_face != None:
-            print("The Round is not finished, use the connection shown in Dice {} first".format(self.dice_num))
-        else:
-            self.current_top_face = DieFace(self.faces[random_face])
+        self.current_top_face = DieFace(self.faces[random_face])
 
     def rotate_face(self):
         if self.current_top_face is not None:
@@ -60,6 +60,12 @@ class Die(pygame.sprite.Sprite):
         else:
             return (560, 600)
 
+    def get_use(self):
+        return self.is_used
+
+    def set_use(self, bool_val):
+        self.is_used = bool_val
+
 class Dice():
     def __init__(self, num_dice = 4,dice_types = [1,1,1,2]):
         self.dice_group = []
@@ -67,6 +73,7 @@ class Dice():
         self.dice_types = dice_types
 
     def roll(self):
+        self.dice_group = []
         for die_num, die_type in zip(list(range(1, self.num_dice+1)), self.dice_types):
             temp_die = Die(die_num, die_type)
             self.dice_group.append(temp_die)
@@ -76,11 +83,5 @@ class Dice():
 
     def get_dice(self):
         return self.dice_group
-
-    def allNone(self):
-        for die in self.dice_group:
-            if die.current_top_face != None:
-                return False
-        return True
 
 

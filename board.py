@@ -1,12 +1,24 @@
 import pygame
 from dice import Dice
 from buttons import Button
+from collections import deque
 
 class GridSquare(pygame.sprite.Sprite):
     def __init__(self, i, j, game_board):
         super(GridSquare, self).__init__()
         self.origin = (game_board.origin[0] + i*60, game_board.origin[1] + j*60)
         self.square = pygame.Rect(self.origin[0], self.origin[1], game_board.side_length//7, game_board.side_length//7)
+        self.top_face = None
+        self.is_permanent = False
+
+    def set_top_face(self, top_face):
+        if not self.is_permanent:
+            self.top_face = top_face
+
+    def make_top_face_permanent(self):
+        self.is_permanent = True
+
+
 
 class GameBoard:
     def __init__(self, origin_x, origin_y, side_length):
@@ -35,8 +47,7 @@ class GameBoard:
         for button_type, button in self.button_types.items():
             self.Buttons.add(Button(button, button_type))
 
-        self.round_number = 1
-        self.round_in_progress = False
+        self.round_number = 0
         self.score = 0
 
         self.grid_squares = pygame.sprite.Group()
@@ -45,6 +56,10 @@ class GameBoard:
                 self.grid_squares.add(GridSquare(i, j, self))
 
         self.dice = Dice()
+        self.stack = deque([])
+
+        self.use_pressed = False
+        self.temp_die = None
 
 
     def get_square_under_mouse(self, x, y):
@@ -59,6 +74,10 @@ class GameBoard:
         for button in self.Buttons:
             if button.is_pressed(x,y):
                 return button.get_name()
+
+        for grid_square in self.grid_squares:
+            if grid_square.square.collidepoint(x,y):
+                return "grid_square"
 
 
 
