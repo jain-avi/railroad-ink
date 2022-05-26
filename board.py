@@ -25,6 +25,7 @@ class GameBoard:
         self.origin = (origin_x, origin_y)
         self.side_length = side_length
         self.draw_board = pygame.Rect(origin_x, origin_y, self.side_length, self.side_length)
+        self.notice_board = pygame.Rect(540, 280, 280, 60)
 
         self.Buttons = pygame.sprite.Group()
         self.button_types = {"Roll":[560, 680, 67.45, 30],
@@ -60,6 +61,8 @@ class GameBoard:
 
         self.use_pressed = False
         self.temp_die = None
+        self.temp_text = ""
+        self.start_time_for_temp_text = None
 
     def restart_game(self):
         self.round_number = 0

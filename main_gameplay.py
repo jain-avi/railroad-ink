@@ -4,6 +4,7 @@ import os
 from loads.load_images import *
 from loads.load_fonts import *
 from board import GameBoard
+import time
 
 pygame.init()
 
@@ -41,6 +42,14 @@ def update_board(square_on_board, board_dice):
 		elem_die, selected_square = GB.stack[i]
 		WIN.blit(elem_die.get_top_face().get_image(), selected_square.origin)
 
+	round_text = ROUND_FONT.render("ROUND {}".format(GB.round_number), 1, (0,0,0))
+	WIN.blit(round_text, (GB.notice_board.centerx - round_text.get_width()/2, GB.notice_board.y))
+	if GB.round_number == 0:
+		GB.temp_text = "Press Roll Dice to start the game"
+		GB.start_time_for_temp_text = time.time()
+	rendered_temp_text = TEMP_FONT.render(GB.temp_text, 1, (0,0,0))
+	WIN.blit(rendered_temp_text, (GB.notice_board.x + 10, GB.notice_board.y + 30))
+
 	pygame.display.update()
 
 
@@ -54,9 +63,11 @@ def do_action_on_button_press(button_type, x, y):
 				GB.use_pressed = False
 				GB.temp_die = None
 			elif (selected_square.is_permanent is True):
-				print("Square is already used in previous rounds")
+				GB.temp_text = "Square is already used in previous rounds"
+				GB.start_time_for_temp_text = time.time()
 			else:
-				print("Square already used this round, undo the action to empty the square")
+				GB.temp_text = "Square already used this round"
+				GB.start_time_for_temp_text = time.time()
 		else:
 			GB.use_pressed = False
 			GB.temp_die = None
@@ -76,10 +87,10 @@ def do_action_on_button_press(button_type, x, y):
 						grid_square.is_permanent = True
 
 			else:
-				print("Some Dice are unused, use before Rolling")
+				GB.temp_text = "Some dice are unused in this round, use them first"
+				GB.start_time_for_temp_text = time.time()
 
 		elif button_type == "Restart":
-			print("restart button pressed")
 			GB.restart_game()
 
 		if GB.round_number >= 1:
@@ -95,11 +106,11 @@ def do_action_on_button_press(button_type, x, y):
 				die_num = int(button_type[-1])
 				GB.temp_die = GB.dice.get_dice()[die_num - 1]
 				if GB.temp_die.get_use() is True:
-					print("Die already used")
+					GB.temp_text = "Die already used this round"
+					GB.start_time_for_temp_text = time.time()
 					GB.temp_die = None
 				else:
 					GB.use_pressed = True
-
 
 			elif "rotate" in button_type:
 				die_num = int(button_type[-1])
@@ -112,8 +123,6 @@ def do_action_on_button_press(button_type, x, y):
 			else:
 				GB.use_pressed = False
 				GB.temp_die = None
-
-
 
 def main():
 	clock = pygame.time.Clock()
@@ -137,6 +146,11 @@ def main():
 						GB.use_pressed = False
 						GB.temp_die = None
 
+
+		if GB.temp_text != "":
+			if time.time() - GB.start_time_for_temp_text > 1.5:
+				GB.temp_text = ""
+				GB.start_time_for_temp_text = None
 		square_on_board = GB.get_square_under_mouse(*pygame.mouse.get_pos())
 		update_board(square_on_board, GB.dice)
 
