@@ -27,9 +27,9 @@ class GameBoard:
         self.draw_board = pygame.Rect(origin_x, origin_y, self.side_length, self.side_length)
 
         self.Buttons = pygame.sprite.Group()
-        self.button_types = {"Roll":[572, 688, 67.45, 30],
-                             "Undo":[673.5, 687.9, 67.5, 30],
-                             "Restart":[780, 687.5, 67, 30],
+        self.button_types = {"Roll":[560, 680, 67.45, 30],
+                             "Undo":[660, 680, 67.5, 30],
+                             "Restart":[740, 680, 67, 30],
                              "use1":[640, 375, 50, 30],
                              "use2":[640, 455, 50, 30],
                              "use3":[640, 535, 50, 30],
@@ -47,6 +47,21 @@ class GameBoard:
         for button_type, button in self.button_types.items():
             self.Buttons.add(Button(button, button_type))
 
+        self.round_number = 0
+        self.score = 0
+
+        self.grid_squares = pygame.sprite.Group()
+        for i in range(7):
+            for j in range(7):
+                self.grid_squares.add(GridSquare(i, j, self))
+
+        self.dice = Dice()
+        self.stack = deque([])
+
+        self.use_pressed = False
+        self.temp_die = None
+
+    def restart_game(self):
         self.round_number = 0
         self.score = 0
 
@@ -79,6 +94,12 @@ class GameBoard:
             if grid_square.square.collidepoint(x,y):
                 return "grid_square"
 
+
+    def grid_square_in_stack(self, grid_square):
+        for die, temp_square in self.stack:
+            if grid_square == temp_square:
+                return True
+        return False
 
 
 

@@ -48,15 +48,18 @@ def do_action_on_button_press(button_type, x, y):
 	if GB.use_pressed == True:
 		if button_type == "grid_square":
 			selected_square = GB.get_square_under_mouse(*pygame.mouse.get_pos())
-			if GB.temp_die is not None:
-				if GB.temp_die.get_use() is False:
-					GB.temp_die.set_use(True)
-					GB.stack.append((GB.temp_die, selected_square))
-				else:
-					print("Die already used")
-
-		GB.use_pressed = False
-		GB.temp_die = None
+			if (GB.grid_square_in_stack(selected_square) is False) and (selected_square.is_permanent is False):
+				GB.temp_die.set_use(True)
+				GB.stack.append((GB.temp_die, selected_square))
+				GB.use_pressed = False
+				GB.temp_die = None
+			elif (selected_square.is_permanent is True):
+				print("Square is already used in previous rounds")
+			else:
+				print("Square already used this round, undo the action to empty the square")
+		else:
+			GB.use_pressed = False
+			GB.temp_die = None
 
 	else:
 		if button_type == "Roll":
@@ -72,11 +75,12 @@ def do_action_on_button_press(button_type, x, y):
 					if (grid_square.top_face is not None) and (grid_square.is_permanent == False):
 						grid_square.is_permanent = True
 
-			elif button_type == "Restart":
-				pass
-
 			else:
 				print("Some Dice are unused, use before Rolling")
+
+		elif button_type == "Restart":
+			print("restart button pressed")
+			GB.restart_game()
 
 		if GB.round_number >= 1:
 			if button_type == "Undo":
@@ -88,9 +92,14 @@ def do_action_on_button_press(button_type, x, y):
 						grid_square.top_face = None
 
 			elif "use" in button_type:
-				GB.use_pressed = True
 				die_num = int(button_type[-1])
 				GB.temp_die = GB.dice.get_dice()[die_num - 1]
+				if GB.temp_die.get_use() is True:
+					print("Die already used")
+					GB.temp_die = None
+				else:
+					GB.use_pressed = True
+
 
 			elif "rotate" in button_type:
 				die_num = int(button_type[-1])
@@ -122,14 +131,12 @@ def main():
 					x,y = pygame.mouse.get_pos()
 					button_type = GB.get_button_type(x,y)
 					if button_type is not None:
+						print("Button Pressed", button_type)
 						do_action_on_button_press(button_type, x, y)
 					else:
 						GB.use_pressed = False
 						GB.temp_die = None
 
-
-		print(GB.temp_die)
-		print(GB.use_pressed)
 		square_on_board = GB.get_square_under_mouse(*pygame.mouse.get_pos())
 		update_board(square_on_board, GB.dice)
 
