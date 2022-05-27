@@ -1,4 +1,7 @@
+import pygame.sprite
+
 from loads.load_images import *
+from numpy import random as npr
 import random
 
 class DieFace():
@@ -20,20 +23,44 @@ class DieFace():
         return die_face_img
 
 
+class SpecialConnection(pygame.sprite.Sprite):
+    def __init__(self, img, face_params):
+        super(SpecialConnection, self).__init__()
+        self.img = img
+        self.rotation_angle = 0
+        self.is_used = False
+        self.face = pygame.Rect(*face_params)
+
+    def rotate(self):
+        self.rotation_angle -= 90
+
+    def get_image(self):
+        die_face_img = pygame.transform.rotate(self.img, self.rotation_angle)
+        return die_face_img
+
+    def is_selected(self, x, y):
+        return self.face.collidepoint(x, y)
+
+    def get_use(self):
+        return self.is_used
+
+    def set_use(self, bool_var):
+        self.is_used = bool_var
+
+
 class Die(pygame.sprite.Sprite):
     def __init__(self, dice_num, type_dice):
         super(Die, self).__init__()
         if type_dice == 1:
             self.faces = [STRAIGHT_HIGHWAY, STRAIGHT_RAILWAY, CURVED_HIGHWAY, CURVED_RAILWAY, T_HIGHWAY, T_RAILWAY]
         else:
-            self.faces = [STRAIGHT_OVERPASS, STRAIGHT_OVERPASS, STRAIGHT_STATION, STRAIGHT_STATION, CURVED_STATION, CURVED_STATION]
+            self.faces = [STRAIGHT_OVERPASS, STRAIGHT_STATION, CURVED_STATION, STRAIGHT_OVERPASS, STRAIGHT_STATION, CURVED_STATION]
         self.current_top_face = None
         self.dice_num = dice_num
         self.is_used = False
 
-    def roll(self):
-        random_face = random.randint(0,5)
-        self.current_top_face = DieFace(self.faces[random_face])
+    def roll(self, val):
+        self.current_top_face = DieFace(self.faces[val])
 
     def rotate_face(self):
         if self.current_top_face is not None:
@@ -52,13 +79,13 @@ class Die(pygame.sprite.Sprite):
 
     def get_origin(self):
         if self.dice_num == 1:
-            return (560, 360)
+            return (580, 360)
         elif self.dice_num == 2:
-            return (560, 440)
+            return (580, 440)
         elif self.dice_num == 3:
-            return (560, 520)
+            return (580, 520)
         else:
-            return (560, 600)
+            return (580, 600)
 
     def get_use(self):
         return self.is_used
@@ -78,8 +105,10 @@ class Dice():
             temp_die = Die(die_num, die_type)
             self.dice_group.append(temp_die)
 
-        for die in self.dice_group:
-            die.roll()
+        random_dice = npr.randint(6, size=self.num_dice)
+        for i in range(len(self.dice_group)):
+            random.shuffle(self.dice_group[i].faces)
+            self.dice_group[i].roll(random_dice[i])
 
     def get_dice(self):
         return self.dice_group
