@@ -1,6 +1,3 @@
-import pygame
-import os
-
 from loads.load_images import *
 from loads.load_fonts import *
 from board import GameBoard
@@ -39,7 +36,7 @@ def update_board(square_on_board, board_dice):
 		x, y, _, _ = GB.button_types["use{}".format(GB.temp_die.dice_num)]
 		WIN.blit(USE_CAN_SELECT, (x, y))
 
-	for grid_square in GB.grid_squares:
+	for grid_square in GB.grid_squares.flatten():
 		if grid_square.top_face is not None:
 			WIN.blit(grid_square.top_face.get_image(), grid_square.origin)
 		if grid_square.used_in_round is not None:
@@ -72,17 +69,45 @@ def update_board(square_on_board, board_dice):
 
 def do_action_on_button_press(button_type, x, y):
 	if GB.use_pressed == True or GB.special_face_selected is not None:
-		if button_type == "grid_square":
+		if button_type == "rotate_special":
+			GB.special_face_selected.rotate()
+		elif button_type == "rotate":
+			if GB.temp_die is not None:
+				GB.temp_die.rotate_face()
+		elif button_type == "mirror":
+			if GB.temp_die is not None:
+				GB.temp_die.mirror_face()
+		elif button_type == "grid_square":
 			selected_square = GB.get_square_under_mouse(*pygame.mouse.get_pos())
 			if (GB.grid_square_in_stack(selected_square) is False) and (selected_square.is_permanent is False):
 				if GB.special_face_selected is not None:
-					GB.special_stack.append((GB.special_face_selected, selected_square))
-					GB.last_actions.append("Special_Face_Added")
+					i,j = selected_square.get_position(x,y,GB)
+					#print(selected_square.is_connection_allowed(i,j,GB, GB.special_face_selected))
+					if selected_square.is_connection_allowed(i,j,GB, GB.special_face_selected) == True:
+						selected_square.set_connections(GB.special_face_selected)
+						print(selected_square.get_connections())
+
+						GB.special_stack.append((GB.special_face_selected, selected_square))
+						GB.last_actions.append("Special_Face_Added")
+					else:
+						GB.temp_text = "Illegal Connection"
+						GB.start_time_for_temp_text = time.time()
 					GB.special_face_selected = None
+
 				elif GB.temp_die is not None:
-					GB.temp_die.set_use(True)
-					GB.stack.append((GB.temp_die, selected_square))
-					GB.last_actions.append("Die_Face_Added")
+
+					i, j = selected_square.get_position(x, y, GB)
+					#print(selected_square.is_connection_allowed(i, j, GB, GB.temp_die.get_top_face()))
+					if selected_square.is_connection_allowed(i, j, GB, GB.temp_die.get_top_face()) == True:
+						GB.temp_die.set_use(True)
+						selected_square.set_connections(GB.temp_die.get_top_face())
+						print(selected_square.get_connections())
+
+						GB.stack.append((GB.temp_die, selected_square))
+						GB.last_actions.append("Die_Face_Added")
+					else:
+						GB.temp_text = "Illegal Connection"
+						GB.start_time_for_temp_text = time.time()
 					GB.use_pressed = False
 					GB.temp_die = None
 			elif (selected_square.is_permanent is True):
@@ -116,7 +141,7 @@ def do_action_on_button_press(button_type, x, y):
 					GB.stack.clear()
 					GB.dice.roll()
 					GB.round_number += 1
-					for grid_square in GB.grid_squares:
+					for grid_square in GB.grid_squares.flatten():
 						if (grid_square.top_face is not None) and (grid_square.is_permanent == False):
 							grid_square.is_permanent = True
 
@@ -138,12 +163,14 @@ def do_action_on_button_press(button_type, x, y):
 					last_action = GB.last_actions.pop()
 					if last_action == "Die_Face_Added":
 						if len(GB.stack) > 0:
-							die, _ = GB.stack.pop()
+							die, selected_square = GB.stack.pop()
 							die.set_use(False) #Can be used again because of the undo action
+							selected_square.set_connections_to_None()
+
 					elif last_action == "Special_Face_Added":
 						if len(GB.special_stack)>0:
-							special_face, _ = GB.special_stack.pop()
-
+							special_face, selected_square = GB.special_stack.pop()
+							selected_square.set_connections_to_None()
 
 			elif "use" in button_type:
 				die_num = int(button_type[-1])
@@ -155,20 +182,14 @@ def do_action_on_button_press(button_type, x, y):
 				else:
 					GB.use_pressed = True
 
-			elif "rotate" in button_type:
-				if "special" in button_type:
-					if GB.special_face_selected is not None:
-						GB.special_face_selected.rotate()
-					elif len(GB.special_stack) > 0:
-						special_face, _ = GB.special_stack[0]
-						special_face.rotate()
-				else:
-					die_num = int(button_type[-1])
-					GB.dice.get_dice()[die_num - 1].rotate_face()
+			# elif "rotate" in button_type:
+			# 	die_num = int(button_type[-1])
+			# 	if GB.dice.get_dice()[die_num - 1].get_use() == False:
+			# 		GB.dice.get_dice()[die_num - 1].rotate_face()
 
-			elif "mirror" in button_type:
-				die_num = int(button_type[-1])
-				GB.dice.get_dice()[die_num - 1].mirror_face()
+			# elif "mirror" in button_type:
+			# 	die_num = int(button_type[-1])
+			# 	GB.dice.get_dice()[die_num - 1].mirror_face()
 
 			elif button_type == "special_face":
 				if len(GB.special_faces_used) < 3:
@@ -227,6 +248,9 @@ def main():
 				GB.start_time_for_temp_text = None
 
 		square_on_board = GB.get_square_under_mouse(*pygame.mouse.get_pos())
+		# if square_on_board is not None:
+		# 	print(pygame.mouse.get_pos())
+		# 	print(square_on_board.get_position(pygame.mouse.get_pos()[0], pygame.mouse.get_pos()[1], GB))
 		update_board(square_on_board, GB.dice)
 
 

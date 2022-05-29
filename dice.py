@@ -9,17 +9,34 @@ class DieFace():
         self.img = img
         self.rotation_angle = 0
         self.is_mirrored = False
+        self.img_conn_mapping = {
+            STRAIGHT_HIGHWAY:["Road", "Empty", "Road", "Empty"],
+            STRAIGHT_RAILWAY: ["Empty", "Rail", "Empty", "Rail"],
+            CURVED_HIGHWAY: ["Empty", "Empty", "Road", "Road"],
+            CURVED_RAILWAY: ["Empty", "Empty", "Rail", "Rail"],
+            STRAIGHT_STATION: ["Empty", "Rail", "Empty", "Road"],
+            CURVED_STATION: ["Empty", "Empty", "Rail", "Road"],
+            T_HIGHWAY: ["Road", "Empty", "Road", "Road"],
+            T_RAILWAY: ["Empty", "Rail", "Rail", "Rail"],
+            STRAIGHT_OVERPASS: ["Road", "Rail", "Road", "Rail"],
+        }
+
+        # Changes made are now for the graph to be created
+        self.left_conn, self.top_conn, self.right_conn, self.bottom_conn = self.img_conn_mapping[img]
 
     def rotate(self):
         self.rotation_angle -= 90
+        self.left_conn, self.top_conn, self.right_conn, self.bottom_conn = self.bottom_conn, self.left_conn, self.top_conn, self.right_conn
 
     def mirror(self):
         self.is_mirrored = not self.is_mirrored
+        self.left_conn, self.right_conn = self.right_conn, self.left_conn
 
     def get_image(self):
-        die_face_img = pygame.transform.rotate(self.img, self.rotation_angle)
+        die_face_img = self.img
         if self.is_mirrored == True:
             die_face_img = pygame.transform.flip(die_face_img, flip_x=True, flip_y=False)
+        die_face_img = pygame.transform.rotate(die_face_img, self.rotation_angle)
         return die_face_img
 
 
@@ -31,8 +48,21 @@ class SpecialConnection(pygame.sprite.Sprite):
         self.is_used = False
         self.face = pygame.Rect(*face_params)
 
+        self.img_conn_mapping = {
+            SP_JUNC_1: ["Rail", "Road", "Road", "Road"],
+            SP_JUNC_2: ["Rail", "Rail", "Rail", "Road"],
+            SP_JUNC_3: ["Road", "Road", "Road", "Road"],
+            SP_JUNC_4: ["Rail", "Rail", "Rail", "Rail"],
+            SP_JUNC_5: ["Road", "Rail", "Rail", "Road"],
+            SP_JUNC_6: ["Road", "Rail", "Road", "Rail"],
+        }
+
+        # Changes made are now for the graph to be created
+        self.left_conn, self.top_conn, self.right_conn, self.bottom_conn = self.img_conn_mapping[img]
+
     def rotate(self):
         self.rotation_angle -= 90
+        self.left_conn, self.top_conn, self.right_conn, self.bottom_conn = self.bottom_conn, self.left_conn, self.top_conn, self.right_conn
 
     def get_image(self):
         die_face_img = pygame.transform.rotate(self.img, self.rotation_angle)
@@ -79,13 +109,13 @@ class Die(pygame.sprite.Sprite):
 
     def get_origin(self):
         if self.dice_num == 1:
-            return (580, 360)
+            return (600, 381)
         elif self.dice_num == 2:
-            return (580, 440)
+            return (700, 381)
         elif self.dice_num == 3:
-            return (580, 520)
+            return (601, 461)
         else:
-            return (580, 600)
+            return (701, 461)
 
     def get_use(self):
         return self.is_used
