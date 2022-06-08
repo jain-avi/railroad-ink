@@ -9,6 +9,7 @@ class DieFace():
         self.img = img
         self.rotation_angle = 0
         self.is_mirrored = False
+        self.transform_history = []
         self.img_conn_mapping = {
             STRAIGHT_HIGHWAY:["Road", "Empty", "Road", "Empty"],
             STRAIGHT_RAILWAY: ["Empty", "Rail", "Empty", "Rail"],
@@ -26,17 +27,22 @@ class DieFace():
 
     def rotate(self):
         self.rotation_angle -= 90
+        self.transform_history.append("rotate")
         self.left_conn, self.top_conn, self.right_conn, self.bottom_conn = self.bottom_conn, self.left_conn, self.top_conn, self.right_conn
 
     def mirror(self):
         self.is_mirrored = not self.is_mirrored
+        self.transform_history.append("mirror")
         self.left_conn, self.right_conn = self.right_conn, self.left_conn
+
 
     def get_image(self):
         die_face_img = self.img
-        if self.is_mirrored == True:
-            die_face_img = pygame.transform.flip(die_face_img, flip_x=True, flip_y=False)
-        die_face_img = pygame.transform.rotate(die_face_img, self.rotation_angle)
+        for transform in self.transform_history:
+            if transform == "rotate":
+                die_face_img = pygame.transform.rotate(die_face_img, -90)
+            else:
+                die_face_img = pygame.transform.flip(die_face_img, flip_x=True, flip_y=False)
         return die_face_img
 
 

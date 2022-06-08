@@ -1,9 +1,13 @@
 import pygame
+from loads.load_images import *
+from loads.load_fonts import *
 from dice import Dice, SpecialConnection
 from buttons import Button
 from collections import deque
 from loads.load_images import SP_JUNC_1, SP_JUNC_2, SP_JUNC_3, SP_JUNC_4, SP_JUNC_5, SP_JUNC_6
 import numpy as np
+from graph import BoardGraph
+import time
 
 class GridSquare(pygame.sprite.Sprite):
     def __init__(self, i, j, game_board):
@@ -31,6 +35,9 @@ class GridSquare(pygame.sprite.Sprite):
 
     def get_position(self, x, y, game_board):
         return (y - game_board.origin[1])//60, (x - game_board.origin[0])//60
+
+    def get_board_indices(self, game_board):
+        return (self.origin[1] - game_board.origin[1])//60, (self.origin[0] - game_board.origin[0])//60
 
     def get_connections(self):
         return [self.left_conn, self.top_conn, self.right_conn, self.bottom_conn]
@@ -122,15 +129,15 @@ class GridSquare(pygame.sprite.Sprite):
         top_match, top_connected = self.match_connection(top_conn, top_face.top_conn)
         bottom_match, bottom_connected = self.match_connection(bottom_conn, top_face.bottom_conn)
 
-        print(i,j)
-        print(left_conn, top_face.left_conn)
-        print(top_conn, top_face.top_conn)
-        print(right_conn, top_face.right_conn)
-        print(bottom_conn, top_face.bottom_conn)
-        print(left_match)
-        print(top_match)
-        print(right_match)
-        print(bottom_match)
+        # print(i,j)
+        # print(left_conn, top_face.left_conn)
+        # print(top_conn, top_face.top_conn)
+        # print(right_conn, top_face.right_conn)
+        # print(bottom_conn, top_face.bottom_conn)
+        # print(left_match)
+        # print(top_match)
+        # print(right_match)
+        # print(bottom_match)
 
         #The logic is as follows - There should be atleast one connection (rest can be not connected)
         return  (left_connected or right_connected or top_connected or bottom_connected) \
@@ -138,6 +145,44 @@ class GridSquare(pygame.sprite.Sprite):
 
     def set_connections(self, top_face):
         self.left_conn, self.top_conn, self.right_conn, self.bottom_conn = top_face.left_conn, top_face.top_conn, top_face.right_conn, top_face.bottom_conn
+
+    def process_after_click(self, GB, x, y):
+        if (GB.grid_square_in_stack(self) is False) and (self.is_permanent is False):
+            if GB.special_face_selected is not None:
+                i, j = self.get_position(x, y, GB)
+                if self.is_connection_allowed(i, j, GB, GB.special_face_selected) == True:
+                    self.set_connections(GB.special_face_selected)
+                    # print(self.get_connections())
+
+                    GB.special_stack.append((GB.special_face_selected, self))
+                    GB.last_actions.append("Special_Face_Added")
+                else:
+                    GB.temp_text = "Illegal Connection"
+                    GB.start_time_for_temp_text = time.time()
+                GB.special_face_selected = None
+
+            elif GB.temp_die is not None:
+
+                i, j = self.get_position(x, y, GB)
+                if self.is_connection_allowed(i, j, GB, GB.temp_die.get_top_face()) == True:
+                    GB.temp_die.set_use(True)
+                    self.set_connections(GB.temp_die.get_top_face())
+                    # print(self.get_connections())
+
+                    GB.stack.append((GB.temp_die, self))
+                    GB.last_actions.append("Die_Face_Added")
+                else:
+                    GB.temp_text = "Illegal Connection"
+                    GB.start_time_for_temp_text = time.time()
+                GB.use_pressed = False
+                GB.temp_die = None
+        elif (self.is_permanent is True):
+            GB.temp_text = "Square is already used in previous rounds"
+            GB.start_time_for_temp_text = time.time()
+        else:
+            GB.temp_text = "Square already used this round"
+            GB.start_time_for_temp_text = time.time()
+
 
 class GameBoard:
     def __init__(self, origin_x, origin_y, side_length):
@@ -196,6 +241,8 @@ class GameBoard:
         self.start_time_for_temp_text = None
         self.last_actions = deque([])
 
+        self.graph = BoardGraph()
+
     def restart_game(self):
         self.round_number = 0
         self.score = 0
@@ -221,6 +268,8 @@ class GameBoard:
         self.temp_text = ""
         self.start_time_for_temp_text = None
         self.last_actions = deque([])
+
+        self.graph = BoardGraph()
 
     def get_square_under_mouse(self, x, y):
         for grid_square in self.grid_squares.flatten():
@@ -251,6 +300,134 @@ class GameBoard:
         return False
 
 
+    def undo_last_action(self):
+        if len(self.last_actions) > 0:
+            last_action = self.last_actions.pop()
+            if last_action == "Die_Face_Added":
+                if len(self.stack) > 0:
+                    die, selected_square = self.stack.pop()
+                    die.set_use(False)  # Can be used again because of the undo action
+                    selected_square.set_connections_to_None()
+
+            elif last_action == "Special_Face_Added":
+                if len(self.special_stack) > 0:
+                    special_face, selected_square = self.special_stack.pop()
+                    selected_square.set_connections_to_None()
+
+    def set_temp_die(self, button_type):
+        die_num = int(button_type[-1])
+        self.temp_die = self.dice.get_dice()[die_num - 1]
+        if self.temp_die.get_use() is True:
+            self.temp_text = "Die already used this round"
+            self.start_time_for_temp_text = time.time()
+            self.temp_die = None
+        else:
+            self.use_pressed = True
+
+
+    def set_special_face_temp(self, x, y):
+        if len(self.special_faces_used) < 3:
+            if len(self.special_stack) == 0:
+                for special_face in self.special_connections:
+                    if special_face.is_selected(x, y):
+                        if special_face.get_use() is not True:
+                            self.special_face_selected = special_face
+                        else:
+                            self.temp_text = "Special Connection is already used previously"
+                            self.start_time_for_temp_text = time.time()
+            else:
+                self.temp_text = "Special Connection is already used this round"
+                self.start_time_for_temp_text = time.time()
+        else:
+            self.temp_text = "Max 3 Special Connections can be used"
+            self.start_time_for_temp_text = time.time()
+
+
+    def make_special_connection_final(self):
+        if len(self.special_stack) != 0:
+            special_face, selected_square = self.special_stack.pop()
+            special_face.is_used = True
+            selected_square.set_top_face(special_face)
+            selected_square.used_in_round = self.round_number
+            self.special_stack.clear()
+            self.special_faces_used.append(special_face)
+
+
+    def make_die_faces_final(self):
+        if (self.round_number == 0) or (len(self.stack) == 4):
+            while (len(self.stack) > 0):
+                temp_die, selected_square = self.stack.pop()
+                selected_square.set_top_face(temp_die.get_top_face())
+                selected_square.make_top_face_permanent()
+                selected_square.used_in_round = self.round_number
+            self.stack.clear()
+            self.dice.roll()
+            self.round_number += 1
+            for grid_square in self.grid_squares.flatten():
+                if (grid_square.top_face is not None) and (grid_square.is_permanent == False):
+                    grid_square.is_permanent = True
+
+            self.last_actions.clear()
+
+        else:
+            self.temp_text = "Some dice are unused in this round, use them first"
+            self.start_time_for_temp_text = time.time()
+
+
+    def update_display_for_grid_squares(self, WIN, square_on_board):
+        if square_on_board is not None:
+            WIN.blit(SQUARE_SELECT, square_on_board.origin)
+
+        for grid_square in self.grid_squares.flatten():
+            if grid_square.top_face is not None:
+                WIN.blit(grid_square.top_face.get_image(), grid_square.origin)
+            if grid_square.used_in_round is not None:
+                round_number_text = NUMBER_FONT.render("{}".format(grid_square.used_in_round), 1, (0, 0, 0))
+                x, y = grid_square.origin
+                WIN.blit(round_number_text, (x + 46, y + 2))
+
+
+    def update_display_for_special_connections(self, WIN):
+        for special_face in self.special_connections:
+            WIN.blit(special_face.get_image(), (special_face.face.x, special_face.face.y))
+            if special_face.get_use() == True:
+                WIN.blit(SPECIAL_SELECTED, (special_face.face.x, special_face.face.y))
+
+        for special_face, selected_square in self.special_stack:
+            WIN.blit(special_face.get_image(), selected_square.origin)
+            WIN.blit(SPECIAL_SELECTED, (special_face.face.x, special_face.face.y))
+
+        if self.special_face_selected is not None:
+            x, y = self.special_face_selected.face.x, self.special_face_selected.face.y
+            WIN.blit(SPECIAL_CAN_SELECT, (x, y))
+
+
+    def update_display_for_die_faces(self, WIN, board_dice):
+        for die in board_dice.get_dice():
+            top_face = die.get_top_face()
+            if top_face is not None:
+                WIN.blit(top_face.get_image(), die.get_origin())
+            if die.get_use() == True:
+                x, y, _, _ = self.button_types["use{}".format(die.dice_num)]
+                WIN.blit(USE_SELECTED, (x, y))
+
+        if self.temp_die is not None:
+            x, y, _, _ = self.button_types["use{}".format(self.temp_die.dice_num)]
+            WIN.blit(USE_CAN_SELECT, (x, y))
+
+        for i in range(len(self.stack)):
+            elem_die, selected_square = self.stack[i]
+            WIN.blit(elem_die.get_top_face().get_image(), selected_square.origin)
+
+
+    def update_notice_board(self, WIN):
+        round_text = ROUND_FONT.render("ROUND {}".format(self.round_number), 1, (0, 0, 0))
+        WIN.blit(round_text, (self.notice_board.centerx - round_text.get_width() / 2, self.notice_board.y))
+        if self.round_number == 0:
+            self.temp_text = "Press Roll Dice to start the game"
+            self.start_time_for_temp_text = time.time()
+        rendered_temp_text = TEMP_FONT.render(self.temp_text, 1, (0, 0, 0))
+        WIN.blit(rendered_temp_text, (self.notice_board.x + 10, self.notice_board.y + 30))
 
 
 
