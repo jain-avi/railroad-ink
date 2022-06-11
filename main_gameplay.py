@@ -20,6 +20,8 @@ def update_board(square_on_board, board_dice):
 	GB.update_display_for_special_connections(WIN)
 	GB.update_display_for_die_faces(WIN, board_dice)
 	GB.update_notice_board(WIN)
+	if (GB.round_number == GB.last_round) and (GB.score_calculated == True):
+		GB.display_scores(WIN)
 	pygame.display.update()
 
 
@@ -43,9 +45,22 @@ def do_action_on_button_press(button_type, x, y):
 
 	else:
 		if button_type == "Roll":
-			if GB.round_number <= 6:
+			if GB.round_number <= GB.last_round - 1:
 				GB.make_special_connection_final()
 				GB.make_die_faces_final()
+				GB.dice.roll()
+				GB.round_number += 1
+				if GB.round_number == GB.last_round:
+					GB.temp_text = "Last Round, press Roll to Finish after connections"
+					GB.start_time_for_temp_text = time.time()
+
+			elif (GB.round_number == GB.last_round) and (GB.last_round_set == False):
+				GB.make_special_connection_final()
+				GB.make_die_faces_final()
+				GB.last_round_set = True
+				GB.temp_text = "Game Over, press Score to Finish"
+				GB.start_time_for_temp_text = time.time()
+
 			else:
 				GB.temp_text = "Game Over, press Score to Finish"
 				GB.start_time_for_temp_text = time.time()
@@ -64,8 +79,8 @@ def do_action_on_button_press(button_type, x, y):
 				GB.set_special_face_temp(x, y)
 
 			elif button_type == "score":
-				if GB.round_number == 7:
-					pass
+				if GB.round_number == GB.last_round:
+					GB.calculate_score()
 				else:
 					GB.temp_text = "Game Finishes after Round 7"
 					GB.start_time_for_temp_text = time.time()

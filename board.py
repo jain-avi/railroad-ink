@@ -46,6 +46,7 @@ class GridSquare(pygame.sprite.Sprite):
         self.left_conn, self.top_conn, self.right_conn, self.bottom_conn = "Empty", "Empty", "Empty", "Empty"
 
     def get_left_neighbor_conn(self, i,j, game_board):
+        # print(i,j)
         if j==0:
             if i == 1:
                 return "Rail"
@@ -56,6 +57,7 @@ class GridSquare(pygame.sprite.Sprite):
             else:
                 return "Edge"
         else:
+            # print(game_board.grid_squares[i][j-1].get_connections())
             return game_board.grid_squares[i][j-1].right_conn
 
     def get_top_neighbor_conn(self, i,j, game_board):
@@ -69,6 +71,7 @@ class GridSquare(pygame.sprite.Sprite):
             else:
                 return "Edge"
         else:
+            # print(game_board.grid_squares[i-1][j].get_connections())
             return game_board.grid_squares[i-1][j].bottom_conn
 
     def get_right_neighbor_conn(self, i,j, game_board):
@@ -82,6 +85,7 @@ class GridSquare(pygame.sprite.Sprite):
             else:
                 return "Edge"
         else:
+            # print(game_board.grid_squares[i][j + 1].get_connections())
             return game_board.grid_squares[i][j+1].left_conn
 
     def get_bottom_neighbor_conn(self, i,j, game_board):
@@ -95,6 +99,7 @@ class GridSquare(pygame.sprite.Sprite):
             else:
                 return "Edge"
         else:
+            # print(game_board.grid_squares[i+1][j].get_connections())
             return game_board.grid_squares[i+1][j].top_conn
 
     def is_unconnected(self, i, j, game_board):
@@ -190,6 +195,12 @@ class GameBoard:
         self.side_length = side_length
         self.draw_board = pygame.Rect(origin_x, origin_y, self.side_length, self.side_length)
         self.notice_board = pygame.Rect(540, 280, 280, 60)
+        self.score_board_longest_road = pygame.Rect(640, 120, 30, 30)
+        self.score_board_longest_rail = pygame.Rect(740, 120, 30, 30)
+        self.score_board_endpoints = pygame.Rect(640, 160, 30, 30)
+        self.score_board_middle_squares = pygame.Rect(740, 160, 30, 30)
+        self.score_board_open_ends = pygame.Rect(640, 200, 30, 30)
+        self.score_board_total = pygame.Rect(750, 200, 70, 30)
 
         self.Buttons = pygame.sprite.Group()
         self.button_types = {"Roll":[560, 611, 67.45, 30],
@@ -205,11 +216,15 @@ class GameBoard:
                              "score":[660,240,64,30]
         }
 
+
         for button_type, button in self.button_types.items():
             self.Buttons.add(Button(button, button_type))
 
         self.round_number = 0
         self.score = 0
+        self.score_calculated = False
+        self.last_round = 7
+        self.last_round_set = False
 
         self.grid_squares = [[], [], [], [], [], [], []]
         for i in range(7):
@@ -242,34 +257,15 @@ class GameBoard:
         self.last_actions = deque([])
 
         self.graph = BoardGraph()
+        self.score_middle_squares = 0
+        self.score_longest_road = 0
+        self.score_longest_rail = 0
+        self.score_endpoints = 0
+        self.score_open_ends = 0
+
 
     def restart_game(self):
-        self.round_number = 0
-        self.score = 0
-
-        self.grid_squares = [[], [], [], [], [], [], []]
-        for i in range(7):
-            for j in range(7):
-                self.grid_squares[i].append(GridSquare(i, j, self))
-        self.grid_squares = np.array(self.grid_squares)
-
-        self.dice = Dice()
-        self.stack = deque([])
-        self.special_face_selected = None
-        self.special_stack = deque([])
-        self.special_faces_used = []
-
-        self.special_connections = pygame.sprite.Group()
-        for connection_img, face_param in self.special_connections_faces.items():
-            self.special_connections.add(SpecialConnection(connection_img, face_param))
-
-        self.use_pressed = False
-        self.temp_die = None
-        self.temp_text = ""
-        self.start_time_for_temp_text = None
-        self.last_actions = deque([])
-
-        self.graph = BoardGraph()
+        self.__init__(*self.origin, self.side_length)
 
     def get_square_under_mouse(self, x, y):
         for grid_square in self.grid_squares.flatten():
@@ -348,6 +344,8 @@ class GameBoard:
             special_face, selected_square = self.special_stack.pop()
             special_face.is_used = True
             selected_square.set_top_face(special_face)
+            i,j = selected_square.get_board_indices(self)
+            self.graph.set_nodes_edges(i, j, special_face)
             selected_square.used_in_round = self.round_number
             self.special_stack.clear()
             self.special_faces_used.append(special_face)
@@ -360,9 +358,9 @@ class GameBoard:
                 selected_square.set_top_face(temp_die.get_top_face())
                 selected_square.make_top_face_permanent()
                 selected_square.used_in_round = self.round_number
+                i, j = selected_square.get_board_indices(self)
+                self.graph.set_nodes_edges(i, j, temp_die.get_top_face())
             self.stack.clear()
-            self.dice.roll()
-            self.round_number += 1
             for grid_square in self.grid_squares.flatten():
                 if (grid_square.top_face is not None) and (grid_square.is_permanent == False):
                     grid_square.is_permanent = True
@@ -428,6 +426,33 @@ class GameBoard:
             self.start_time_for_temp_text = time.time()
         rendered_temp_text = TEMP_FONT.render(self.temp_text, 1, (0, 0, 0))
         WIN.blit(rendered_temp_text, (self.notice_board.x + 10, self.notice_board.y + 30))
+
+
+    def display_scores(self, WIN):
+        score_middle_squares = SCORE_FONT.render("{}".format(self.score_middle_squares), 1, (0,0,0))
+        score_longest_road = SCORE_FONT.render("{}".format(self.score_longest_road), 1, (0,0,0))
+        score_longest_rail = SCORE_FONT.render("{}".format(self.score_longest_rail), 1, (0,0,0))
+        score_endpoints = SCORE_FONT.render("{}".format(self.score_endpoints), 1, (0,0,0))
+        score_open_ends = SCORE_FONT.render("{}".format(self.score_open_ends), 1, (0,0,0))
+        score_total = SCORE_FONT.render("{}".format(self.score), 1, (0,0,0))
+
+        WIN.blit(score_middle_squares, (self.score_board_middle_squares.x + 15, self.score_board_middle_squares.y + 1))
+        WIN.blit(score_longest_road, (self.score_board_longest_road.x + 15, self.score_board_longest_road.y + 1))
+        WIN.blit(score_longest_rail, (self.score_board_longest_rail.x + 15, self.score_board_longest_rail.y + 1))
+        WIN.blit(score_endpoints, (self.score_board_endpoints.x + 15, self.score_board_endpoints.y + 1))
+        WIN.blit(score_open_ends, (self.score_board_open_ends.x + 10, self.score_board_open_ends.y + 1))
+        WIN.blit(score_total, (self.score_board_total.x + 30, self.score_board_total.y + 1))
+
+
+    def calculate_score(self):
+        self.score_middle_squares = self.graph.score_middle_squares()
+        self.score_open_ends = self.graph.score_open_connections()
+        self.graph.label_connected_components()
+        self.score_endpoints = self.graph.score_connected_ends()
+        self.score = self.score_middle_squares + self.score_open_ends + self.score_endpoints
+        self.score_calculated = True
+        self.temp_text = "Game Over, Press Restart to Start again"
+        self.start_time_for_temp_text = time.time()
 
 
 

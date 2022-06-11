@@ -21,6 +21,9 @@ class DieFace():
             T_RAILWAY: ["Empty", "Rail", "Rail", "Rail"],
             STRAIGHT_OVERPASS: ["Road", "Rail", "Road", "Rail"],
         }
+        self.is_overpass = False
+        if img == STRAIGHT_OVERPASS:
+            self.is_overpass = True
 
         # Changes made are now for the graph to be created
         self.left_conn, self.top_conn, self.right_conn, self.bottom_conn = self.img_conn_mapping[img]
@@ -34,7 +37,6 @@ class DieFace():
         self.is_mirrored = not self.is_mirrored
         self.transform_history.append("mirror")
         self.left_conn, self.right_conn = self.right_conn, self.left_conn
-
 
     def get_image(self):
         die_face_img = self.img
@@ -53,6 +55,7 @@ class SpecialConnection(pygame.sprite.Sprite):
         self.rotation_angle = 0
         self.is_used = False
         self.face = pygame.Rect(*face_params)
+        self.is_overpass = False
 
         self.img_conn_mapping = {
             SP_JUNC_1: ["Rail", "Road", "Road", "Road"],
