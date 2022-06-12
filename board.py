@@ -449,8 +449,10 @@ class GameBoard:
         self.score_open_ends = self.graph.score_open_connections()
         self.graph.label_connected_components()
         self.score_endpoints = self.graph.score_connected_ends()
-        self.score = self.score_middle_squares + self.score_open_ends + self.score_endpoints
+        self.score_longest_road, self.score_longest_rail = self.graph.find_longest_road_rail()
+        self.score = self.score_middle_squares + self.score_open_ends + self.score_endpoints + self.score_longest_road + self.score_longest_rail
         self.score_calculated = True
+
         self.temp_text = "Game Over, Press Restart to Start again"
         self.start_time_for_temp_text = time.time()
 
