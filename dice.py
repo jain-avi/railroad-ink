@@ -118,13 +118,13 @@ class Die(pygame.sprite.Sprite):
 
     def get_origin(self):
         if self.dice_num == 1:
-            return (600, 381)
+            return (600, 380)
         elif self.dice_num == 2:
-            return (700, 381)
+            return (700, 380)
         elif self.dice_num == 3:
-            return (601, 461)
+            return (600, 460)
         else:
-            return (701, 461)
+            return (700, 460)
 
     def get_use(self):
         return self.is_used

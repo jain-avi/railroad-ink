@@ -109,6 +109,9 @@ def main():
 						GB.use_pressed = False
 						GB.temp_die = None
 
+		if (GB.round_number == GB.last_round) and (GB.score_calculated == True):
+			GB.temp_text = "Game Over, Press Restart to Start again"
+			GB.start_time_for_temp_text = time.time()
 
 		if GB.temp_text != "":
 			if time.time() - GB.start_time_for_temp_text > 1.5:

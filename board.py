@@ -200,16 +200,16 @@ class GameBoard:
         self.score_board_endpoints = pygame.Rect(640, 160, 30, 30)
         self.score_board_middle_squares = pygame.Rect(740, 160, 30, 30)
         self.score_board_open_ends = pygame.Rect(640, 200, 30, 30)
-        self.score_board_total = pygame.Rect(750, 200, 70, 30)
+        self.score_board_total = pygame.Rect(740, 200, 30, 30)
 
         self.Buttons = pygame.sprite.Group()
         self.button_types = {"Roll":[560, 611, 67.45, 30],
                              "Undo":[660, 611, 67.5, 30],
                              "Restart":[740, 611, 67, 30],
-                             "use1":[600, 381, 60, 60],
-                             "use2":[700, 381, 60, 60],
-                             "use3":[601, 461, 60, 60],
-                             "use4":[701, 461, 60, 60],
+                             "use1":[600, 380, 60, 60],
+                             "use2":[700, 380, 60, 60],
+                             "use3":[600, 460, 60, 60],
+                             "use4":[700, 460, 60, 60],
                              "rotate":[626, 555, 50, 30],
                              "mirror":[686, 555, 50, 30],
                              "rotate_special":[520,156,50,20],
@@ -223,7 +223,7 @@ class GameBoard:
         self.round_number = 0
         self.score = 0
         self.score_calculated = False
-        self.last_round = 7
+        self.last_round = 2
         self.last_round_set = False
 
         self.grid_squares = [[], [], [], [], [], [], []]
@@ -418,9 +418,15 @@ class GameBoard:
             WIN.blit(elem_die.get_top_face().get_image(), selected_square.origin)
 
 
+    def display_aligned_text(self, WIN, text, board):
+        print(board.centerx - text.get_width() // 2)
+        print(board.centery - text.get_height()// 2)
+        WIN.blit(text, (board.centerx - text.get_width() / 2, board.centery - text.get_height()/ 2))
+
+
     def update_notice_board(self, WIN):
         round_text = ROUND_FONT.render("ROUND {}".format(self.round_number), 1, (0, 0, 0))
-        WIN.blit(round_text, (self.notice_board.centerx - round_text.get_width() / 2, self.notice_board.y))
+        WIN.blit(round_text, (self.notice_board.centerx - round_text.get_width() // 2, self.notice_board.y))
         if self.round_number == 0:
             self.temp_text = "Press Roll Dice to start the game"
             self.start_time_for_temp_text = time.time()
@@ -436,12 +442,12 @@ class GameBoard:
         score_open_ends = SCORE_FONT.render("{}".format(self.score_open_ends), 1, (0,0,0))
         score_total = SCORE_FONT.render("{}".format(self.score), 1, (0,0,0))
 
-        WIN.blit(score_middle_squares, (self.score_board_middle_squares.x + 15, self.score_board_middle_squares.y + 1))
-        WIN.blit(score_longest_road, (self.score_board_longest_road.x + 15, self.score_board_longest_road.y + 1))
-        WIN.blit(score_longest_rail, (self.score_board_longest_rail.x + 15, self.score_board_longest_rail.y + 1))
-        WIN.blit(score_endpoints, (self.score_board_endpoints.x + 15, self.score_board_endpoints.y + 1))
-        WIN.blit(score_open_ends, (self.score_board_open_ends.x + 10, self.score_board_open_ends.y + 1))
-        WIN.blit(score_total, (self.score_board_total.x + 30, self.score_board_total.y + 1))
+        self.display_aligned_text(WIN, score_middle_squares, self.score_board_middle_squares)
+        self.display_aligned_text(WIN, score_longest_road, self.score_board_longest_road)
+        self.display_aligned_text(WIN, score_longest_rail, self.score_board_longest_rail)
+        self.display_aligned_text(WIN, score_endpoints, self.score_board_endpoints)
+        self.display_aligned_text(WIN, score_open_ends, self.score_board_open_ends)
+        self.display_aligned_text(WIN, score_total, self.score_board_total)
 
 
     def calculate_score(self):
@@ -452,9 +458,6 @@ class GameBoard:
         self.score_longest_road, self.score_longest_rail = self.graph.find_longest_road_rail()
         self.score = self.score_middle_squares + self.score_open_ends + self.score_endpoints + self.score_longest_road + self.score_longest_rail
         self.score_calculated = True
-
-        self.temp_text = "Game Over, Press Restart to Start again"
-        self.start_time_for_temp_text = time.time()
 
 
 
